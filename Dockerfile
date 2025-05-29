@@ -1,35 +1,32 @@
 # Usa una versión más reciente y segura
 FROM python:3.12-slim-bookworm
 
-# Instala dependencias del sistema necesarias para pyodbc y ODBC
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    g++ \
-    unixodbc-dev \
-    unixodbc \
-    odbcinst \
-    tdsodbc \
-    freetds-dev \
-    freetds-bin \
-    freetds-common \
-    && rm -rf /var/lib/apt/lists/*
-
-# Configuración del driver ODBC para SQL Server
-RUN echo "[FreeTDS]\n\
-Description = FreeTDS Driver\n\
-Driver = /usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so\n\
-Setup = /usr/lib/x86_64-linux-gnu/odbc/libtdsS.so" >> /etc/odbcinst.ini
-
-# Crea un directorio para la aplicación
+# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copia primero los requerimientos para aprovechar caché de Docker
-COPY requirements.txt .
+# Copiar archivos del proyecto
+COPY . /app
+
+# Instalar dependencias del sistema para pyodbc y GCP SDK
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    curl \
+    gnupg \
+    unixodbc-dev \
+    libsasl2-dev \
+    libssl-dev \
+    libffi-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar controlador ODBC para SQL Server
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+    curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
+    apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql17
+
+# Instalar dependencias de Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia el archivo principal y cualquier otro archivo necesario
-COPY main.py .
-# Si tienes más archivos, puedes usar: COPY . .
-
-# Establece el comando para ejecutar la aplicación
+# Comando por defecto al iniciar el contenedor
 CMD ["python", "main.py"]
