@@ -12,13 +12,13 @@ def get_secret(secret_name, project_id):
     '''Obtiene un secreto desde secret manajer'''
     client = secretmanager.SecretManagerServiceAsyncClient()
     name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
-    response = client.add_secret_version(name = name)
+    response = client.access_secret_version(name = name)
     return response.payload.data.decode("UTF-8")
 
 
 #Configuracion desde variables de entorno(se setean en cloud run)
-GCP_PROJECT = os.getenv('tae-pagaqui-pro')
-PUBSUB_TOPIC = os.getenv('epic_topic_transactions')
+GCP_PROJECT = os.getenv('GCP-PROJECT')
+PUBSUB_TOPIC = os.getenv('PUBSUB_TOPIC')
 
 
 
@@ -78,7 +78,7 @@ while True:
         cursor.execute(
             "SELECT TOP 10 ID, date, FK_users, FK_sku, amount "
             "FROM transactions "
-            "WHERE ID > ? and result = 'EXITO' or result = 'FRACASO'"
+            "WHERE ID > ? AND (result = 'EXITO' OR result = 'FRACASO')"
             "ORDER BY ID ASC",
             last_id
         )
